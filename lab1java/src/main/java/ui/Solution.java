@@ -48,9 +48,11 @@ public class Solution {
 			}
 		}
 
-		String first=new String();
+		String first= "";
 		ArrayList<String> finals=new ArrayList<>();
 		HashMap<String,ArrayList<Pair<String,Float>>>prijelazi=new HashMap<>();
+		HashMap<String,ArrayList<Pair<String,Float>>>reversePrijelazi=new HashMap<>();
+		assert pathTree != null;
 		Path filePath = Paths.get(pathTree);
 		Charset charset = StandardCharsets.UTF_8;
 		try
@@ -66,10 +68,19 @@ public class Solution {
 				if(lines.get(i).split(": ").length>1)
 				{
 					String[] pairs = lines.get(i).split(": ")[1].split(" ");
-					boolean flag = false;
 					for (String pair : pairs)
-						destinations.add(new Pair<String, Float>(pair.split(",")[0], Float.parseFloat(pair.split(",")[1])));
-					prijelazi.put(start, destinations);
+					{
+						String temppName=pair.split(",")[0];
+						Float temppValue=Float.parseFloat(pair.split(",")[1]);
+
+						reversePrijelazi.putIfAbsent(temppName,new ArrayList<>());
+						ArrayList<Pair<String,Float>>tempDestinations=reversePrijelazi.get(temppName);
+						tempDestinations.add(new Pair<>(start,temppValue));
+						reversePrijelazi.put(temppName,tempDestinations);
+
+						destinations.add(new Pair<>(temppName,temppValue));
+					}
+						prijelazi.put(start, destinations);
 				}
 			}
 		}
@@ -94,7 +105,6 @@ public class Solution {
 			{
 				System.out.format("I/O error: %s%n", ex);
 			}
-
 		}
 
 		if(mode!=-1)
@@ -110,6 +120,16 @@ public class Solution {
 		}
 		else if(optimistic)
 		{
+			PriorityQueue<OptimisticState> states=CheckOptimistic(finals,Heauristika,reversePrijelazi);
+			boolean totalState=true;
+			while(!states.isEmpty())
+			{
+				OptimisticState tempState=states.remove();
+				System.out.println(tempState);
+				totalState=(totalState && tempState.isStatus());
+			}
+			System.out.println(formatStatus(totalState,"optimistic"));
+				
 
 		}
 		else if (konsistent)
@@ -128,6 +148,41 @@ public class Solution {
 		Kvintet u=SearchAlgorithm("A",finals,null,prijelazi,1);//UCS*/
 
 	}
+
+	private static PriorityQueue<OptimisticState> CheckOptimistic(ArrayList<String> starters, HashMap<String, Float> heauristika, HashMap<String, ArrayList<Pair<String, Float>>> prijelazi)
+	{
+
+		HashSet<String> visited=new HashSet<>();
+		PriorityQueue<OptimisticState> calculatedStates=new PriorityQueue<>(new OptimisticStateComparator());
+
+
+		Queue<Node> red = new PriorityQueue<>(new NodeComparatorForUCS());
+
+		for(String first : starters)
+		{
+			Node pocetni=new Node(first,null,0,0,0);
+			red.add(pocetni);
+		}
+		while(!red.isEmpty())
+		{
+			Node prvi=red.remove();
+			if(visited.contains(prvi.getName()))
+				continue;
+			calculatedStates.add(new OptimisticState(prvi.getName(),heauristika.get(prvi.getName()),prvi.getTotalCost()));
+			visited.add(prvi.getName());
+			if(!prijelazi.containsKey(prvi.getName()))
+				continue;
+			for(Pair<String,Float> par : prijelazi.get(prvi.getName()))
+			{
+				if(!visited.contains(par.first))
+				{
+					red.add(new Node(par.first,prvi,prvi.getTotalCost()+par.second,0F,prvi.getDepth()+1));
+				}
+			}
+		}
+		return calculatedStates;
+	}
+
 
 	public static Kvintet SearchAlgorithm(String first, ArrayList<String> finals,HashMap<String,Float> Heauristika, HashMap<String,ArrayList<Pair<String,Float>>>prijelazi,int mode)
 	{
@@ -164,6 +219,8 @@ public class Solution {
 				solution=new Node(prvi.getName(),prvi.getParent(),prvi.getTotalCost(),prvi.getTotalCost(),prvi.getDepth());
 				break;
 			}
+			if(!prijelazi.containsKey(prvi.getName()))
+				continue;
 			for(Pair<String,Float> par : prijelazi.get(prvi.getName()))
 			{		//BRZI BFS
 				     /*if(finals.contains(par.first) && mode==0)
@@ -198,6 +255,12 @@ public class Solution {
 			 path.add(tempNode.getName());
 			 return new Kvintet(true, visited.size(), solution.getDepth()+1, solution.getTotalCost(), path);
 		 }
+	}
+	public static String formatStatus(boolean status,String mode)
+	{
+		if(status)
+			return "[CONCLUSION]: Heuristic is "+mode+".";
+		return "[CONCLUSION]: Heuristic is not "+mode+".";
 	}
 }
 
@@ -259,24 +322,33 @@ class Node
 		this.depth = depth;
 	}
 }
-	 class NodeComparatorForUCS implements Comparator<Node>
+class NodeComparatorForUCS implements Comparator<Node>
+{
+	 @Override
+	 public int compare(Node o1, Node o2)
 	 {
-		 @Override
-		 public int compare(Node o1, Node o2)
-		 {
-			 float x = o1.getTotalCost()-o2.getTotalCost();
-			 return (int) (Math.signum(x) == 1 ? Math.ceil(x) : Math.floor(x));
-		 }
-
+		 float x = o1.getTotalCost()-o2.getTotalCost();
+		 return (int) (Math.signum(x) == 1 ? Math.ceil(x) : Math.floor(x));
 	 }
-	class NodeComparatorForAStar implements Comparator<Node>
+
+}
+ class NodeComparatorForAStar implements Comparator<Node>
+{
+	@Override
+	public int compare(Node o1, Node o2)
 	{
-		@Override
-		public int compare(Node o1, Node o2)
-		{
-			float x = o1.getAproximate()-o2.getAproximate();
-			return (int) (Math.signum(x) == 1 ? Math.ceil(x) : Math.floor(x));
-		}
+		float x = o1.getAproximate()-o2.getAproximate();
+		return (int) (Math.signum(x) == 1 ? Math.ceil(x) : Math.floor(x));
+	}
+
+}
+class OptimisticStateComparator implements Comparator<OptimisticState>
+{
+	@Override
+	public int compare(OptimisticState o1, OptimisticState o2)
+	{
+		return (o1.getName().compareTo(o2.getName()));
+	}
 
 }
 
@@ -403,4 +475,63 @@ class Kvintet
 	}
 }
 
+class OptimisticState
+{
+	String name;
+	boolean status;
+	Float heuristic;
+	Float actualCost;
 
+
+	@Override
+	public String toString() {
+		return "[CONDITION]: ["+formatStatus(this.status)+"] h("+this.name+") <= h*: "+this.heuristic+" <= "+this.actualCost;
+	}
+
+	private String formatStatus(boolean status)
+	{
+		if(status)
+			return "OK";
+		return "ERR";
+	}
+
+
+	public OptimisticState(String name, Float heuristic, Float actualCost) {
+		this.name = name;
+		this.status=(heuristic<=actualCost);
+		this.heuristic = heuristic;
+		this.actualCost = actualCost;
+	}
+
+	public String getName() {
+		return name;
+	}
+
+	public void setName(String name) {
+		this.name = name;
+	}
+
+	public boolean isStatus() {
+		return status;
+	}
+
+	public void setStatus(boolean status) {
+		this.status = status;
+	}
+
+	public Float getHeuristic() {
+		return heuristic;
+	}
+
+	public void setHeuristic(Float heuristic) {
+		this.heuristic = heuristic;
+	}
+
+	public Float getActualCost() {
+		return actualCost;
+	}
+
+	public void setActualCost(Float actualCost) {
+		this.actualCost = actualCost;
+	}
+}
