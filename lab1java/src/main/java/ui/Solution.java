@@ -16,8 +16,10 @@ public class Solution {
 		String pathHeuristic=null;
 		boolean optimistic=false;
 		boolean konsistent=false;
-		for(int i=0;i< args.length;i++) {
-			if(args[i].equals("--alg")) {
+		for(int i=0;i< args.length;i++)
+		{
+			if(args[i].equals("--alg"))
+			{
 				i++;
 				if (args[i].equals("bfs"))
 					mode=0;
@@ -51,22 +53,28 @@ public class Solution {
 		HashMap<String,ArrayList<Pair<String,Float>>>prijelazi=new HashMap<>();
 		Path filePath = Paths.get(pathTree);
 		Charset charset = StandardCharsets.UTF_8;
-		try {
+		try
+		{
 			List<String> lines = Files.readAllLines(filePath, charset);
+			lines.removeIf(str -> str.startsWith("#"));
 			first = lines.get(0);
 			finals =new ArrayList<>(Arrays.asList( lines.get(1).split(" ")));
 			for(int i=2;i< lines.size();i++)
 			{
 				String start= lines.get(i).split(": ")[0];
 				ArrayList<Pair<String,Float>> destinations=new ArrayList<>();
-				String[] pairs=lines.get(i).split(": ")[1].split(" ");
-				for(String pair :pairs)
+				if(lines.get(i).split(": ").length>1)
 				{
-					destinations.add(new Pair<String,Float>(pair.split(",")[0],Float.parseFloat(pair.split(",")[0])));
+					String[] pairs = lines.get(i).split(": ")[1].split(" ");
+					boolean flag = false;
+					for (String pair : pairs)
+						destinations.add(new Pair<String, Float>(pair.split(",")[0], Float.parseFloat(pair.split(",")[1])));
+					prijelazi.put(start, destinations);
 				}
-				prijelazi.put(start,destinations);
 			}
-		} catch (IOException ex) {
+		}
+		catch (IOException ex)
+		{
 			System.out.format("I/O error: %s%n", ex);
 		}
 
@@ -74,14 +82,16 @@ public class Solution {
 		if (pathHeuristic!=null)
 		{
 			Heauristika=new HashMap<>();
-			 filePath = Paths.get(pathTree);
-			try {
+			 filePath = Paths.get(pathHeuristic);
+			try
+			{
 				List<String> lines = Files.readAllLines(filePath, charset);
+				lines.removeIf(str -> str.startsWith("#"));
 				for(String pair:lines)
-				{
-					Heauristika.put(pair.split(": ")[0],Float.parseFloat(pair.split(": ")[0]));
-				}
-			}catch (IOException ex) {
+					Heauristika.put(pair.split(": ")[0],Float.parseFloat(pair.split(": ")[1]));
+			}
+			catch (IOException ex)
+			{
 				System.out.format("I/O error: %s%n", ex);
 			}
 
@@ -90,12 +100,11 @@ public class Solution {
 		if(mode!=-1)
 		{
 			if (mode==0)
-				System.out.print("# BFS");
+				System.out.println("# BFS");
 			else if(mode==1)
-				System.out.print("# UCS");
+				System.out.println("# UCS");
 			else
-				System.out.print("# A-STAR "+filePath.getFileName());
-
+				System.out.println("# A-STAR "+filePath.getFileName());
 			Kvintet i=SearchAlgorithm(first,finals,Heauristika,prijelazi,mode);
 			System.out.print(i);
 		}
@@ -130,51 +139,49 @@ public class Solution {
 		Node pocetni=new Node(first,null,0,temp,0);
 		LinkedList<String> path=new LinkedList<>();
 		HashSet<String> visited=new HashSet<>();
-		 if(finals.contains(pocetni.getName()))
-		 {
-			 path.add(pocetni.getName());
-			 return new Kvintet(true,1,0,0,path);
-		 }
-		 Queue<Node> red;
-		 if(mode==0)
-			 red=new LinkedList<>();
-		 else if(mode ==1)
-			 red = new PriorityQueue<>(new NodeComparatorForUCS());
+		if(finals.contains(pocetni.getName()))
+		{
+			path.add(pocetni.getName());
+			return new Kvintet(true,1,0,0,path);
+		}
+
+		Queue<Node> red;
+		if(mode==0)
+			red=new LinkedList<>();
+		else if(mode ==1)
+			red = new PriorityQueue<>(new NodeComparatorForUCS());
 		else
 			red = new PriorityQueue<>(new NodeComparatorForAStar());
 
-		 red.add(pocetni);
-		 Node solution=null;
-		 while(!red.isEmpty())
-		 {
-			 Node prvi=red.remove();
-			 visited.add(prvi.getName());
-			 if((mode==2 || mode==1) && finals.contains(prvi.getName()))
-			 {
-				 solution=new Node(prvi.getName(),prvi.getParent(),prvi.getTotalCost(),prvi.getTotalCost(),prvi.getDepth());
-				 break;
-			 }
-			for(Pair<String,Float> par : prijelazi.get(prvi.getName()))
+		red.add(pocetni);
+		Node solution=null;
+		while(!red.isEmpty())
+		{
+			Node prvi=red.remove();
+			visited.add(prvi.getName());
+			if( finals.contains(prvi.getName()))
 			{
-				     if(finals.contains(par.first) && mode==0)
+				solution=new Node(prvi.getName(),prvi.getParent(),prvi.getTotalCost(),prvi.getTotalCost(),prvi.getDepth());
+				break;
+			}
+			for(Pair<String,Float> par : prijelazi.get(prvi.getName()))
+			{		//BRZI BFS
+				     /*if(finals.contains(par.first) && mode==0)
 					 {
 						    solution=new Node(par.first,prvi,prvi.getTotalCost()+par.second,0F,prvi.getDepth()+1);
 					 		//visited.add(par.first);
 					 		red.clear();
 							break;
-					 }
-					 else
+					 }*/
+				 if(!visited.contains(par.first))
+				 {
+					 temp=0F;
+					 if(mode==2)
 					 {
-						     if(!visited.contains(par.first))
-							 {
-								 temp=0F;
-								 if(mode==2)
-								 {
-									 temp=prvi.getTotalCost()+par.second+Heauristika.get(par.first);
-								 }
-								 red.add(new Node(par.first,prvi,prvi.getTotalCost()+par.second,temp,prvi.getDepth()+1));
-							 }
+						 temp=prvi.getTotalCost()+par.second+Heauristika.get(par.first);
 					 }
+					 red.add(new Node(par.first,prvi,prvi.getTotalCost()+par.second,temp,prvi.getDepth()+1));
+				 }
 			}
 		 }
 		 if(solution==null)
@@ -189,7 +196,7 @@ public class Solution {
 				 tempNode=tempNode.getParent();
 			 }
 			 path.add(tempNode.getName());
-			 return new Kvintet(true, visited.size(), solution.getDepth(), solution.getTotalCost(), path);
+			 return new Kvintet(true, visited.size(), solution.getDepth()+1, solution.getTotalCost(), path);
 		 }
 	}
 }
