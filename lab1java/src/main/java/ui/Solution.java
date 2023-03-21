@@ -22,39 +22,58 @@ public class Solution {
 			{
 				i++;
 				if (args[i].equals("bfs"))
-					mode=0;
+					mode = 0;
 				else if(args[i].equals("ucs"))
-					mode=1;
+					mode = 1;
 				else
-					mode=2;
+					mode = 2;
 			}
 			else if(args[i].equals("--ss"))
 			{
 				i++;
-				pathTree=args[i];
+				pathTree = args[i];
 			}
 			else if(args[i].equals("--h"))
 			{
 				i++;
-				pathHeuristic=args[i];
+				pathHeuristic = args[i];
 			}
 			else if(args[i].equals("--check-optimistic"))
 			{
-				optimistic=true;
+				optimistic = true;
 			}
 			else if(args[i].equals("--check-consistent"))
 			{
-				konsistent=true;
+				konsistent = true;
 			}
 		}
 
+		Charset charset = StandardCharsets.UTF_8;
+		HashMap<String,Float> heauristika=null;
+		if (pathHeuristic!=null)
+		{
+			heauristika=new HashMap<>();
+			Path filePath = Paths.get(pathHeuristic);
+			try
+			{
+				List<String> lines = Files.readAllLines(filePath, charset);
+				lines.removeIf(str -> str.startsWith("#"));
+				for(String pair : lines)
+					heauristika.put(pair.split(": ")[0], Float.parseFloat(pair.split(": ")[1]));
+			}
+			catch (IOException ex)
+			{
+				System.out.format("I/O error: %s%n", ex);
+			}
+		}
+
+		PriorityQueue<ConsistentState> consistentStates=new PriorityQueue<>(new ConsistentStateComparator());
 		String first= "";
 		ArrayList<String> finals=new ArrayList<>();
-		HashMap<String,ArrayList<Pair<String,Float>>>prijelazi=new HashMap<>();
-		HashMap<String,ArrayList<Pair<String,Float>>>reversePrijelazi=new HashMap<>();
+		HashMap<String,SortedSet <Pair<String,Float>>>prijelazi=new HashMap<>();
+		HashMap<String,SortedSet<Pair<String,Float>>>reversePrijelazi=new HashMap<>();
 		assert pathTree != null;
 		Path filePath = Paths.get(pathTree);
-		Charset charset = StandardCharsets.UTF_8;
 		try
 		{
 			List<String> lines = Files.readAllLines(filePath, charset);
@@ -64,7 +83,7 @@ public class Solution {
 			for(int i=2;i< lines.size();i++)
 			{
 				String start= lines.get(i).split(": ")[0];
-				ArrayList<Pair<String,Float>> destinations=new ArrayList<>();
+				SortedSet<Pair<String,Float>> destinations=new TreeSet<>(new PairComparator());
 				if(lines.get(i).split(": ").length>1)
 				{
 					String[] pairs = lines.get(i).split(": ")[1].split(" ");
@@ -72,9 +91,11 @@ public class Solution {
 					{
 						String temppName=pair.split(",")[0];
 						Float temppValue=Float.parseFloat(pair.split(",")[1]);
+						if(konsistent)
+							consistentStates.add(new ConsistentState(start,temppName,temppValue, Objects.requireNonNull(heauristika).get(start),heauristika.get(temppName)));
 
-						reversePrijelazi.putIfAbsent(temppName,new ArrayList<>());
-						ArrayList<Pair<String,Float>>tempDestinations=reversePrijelazi.get(temppName);
+						reversePrijelazi.putIfAbsent(temppName, new TreeSet<Pair<String, Float>>(new PairComparator()));
+						SortedSet<Pair<String,Float>>tempDestinations=reversePrijelazi.get(temppName);
 						tempDestinations.add(new Pair<>(start,temppValue));
 						reversePrijelazi.put(temppName,tempDestinations);
 
@@ -89,23 +110,7 @@ public class Solution {
 			System.out.format("I/O error: %s%n", ex);
 		}
 
-		HashMap<String,Float> Heauristika=null;
-		if (pathHeuristic!=null)
-		{
-			Heauristika=new HashMap<>();
-			 filePath = Paths.get(pathHeuristic);
-			try
-			{
-				List<String> lines = Files.readAllLines(filePath, charset);
-				lines.removeIf(str -> str.startsWith("#"));
-				for(String pair:lines)
-					Heauristika.put(pair.split(": ")[0],Float.parseFloat(pair.split(": ")[1]));
-			}
-			catch (IOException ex)
-			{
-				System.out.format("I/O error: %s%n", ex);
-			}
-		}
+
 
 		if(mode!=-1)
 		{
@@ -115,12 +120,13 @@ public class Solution {
 				System.out.println("# UCS");
 			else
 				System.out.println("# A-STAR "+filePath.getFileName());
-			Kvintet i=SearchAlgorithm(first,finals,Heauristika,prijelazi,mode);
+			Kvintet i=SearchAlgorithm(first,finals,heauristika,prijelazi,mode);
 			System.out.print(i);
 		}
 		else if(optimistic)
 		{
-			PriorityQueue<OptimisticState> states=CheckOptimistic(finals,Heauristika,reversePrijelazi);
+			System.out.println("# HEURISTIC-OPTIMISTIC "+filePath.getFileName());
+			PriorityQueue<OptimisticState> states=CheckOptimistic(finals,heauristika,reversePrijelazi);
 			boolean totalState=true;
 			while(!states.isEmpty())
 			{
@@ -134,22 +140,21 @@ public class Solution {
 		}
 		else if (konsistent)
 		{
+			System.out.println("# HEURISTIC-CONSISTENT "+filePath.getFileName());
+			boolean totalState=true;
+			while(!consistentStates.isEmpty())
+			{
+				ConsistentState tempState=consistentStates.remove();
+				System.out.println(tempState);
+				totalState=(totalState && tempState.isState());
+			}
+			System.out.println(formatStatus(totalState,"consistent"));
 
 		}
 
-		/*finals.add("G");
-		prijelazi.put("A", new ArrayList<> (Arrays.asList(new Pair<>("B", 1F), new Pair<>("C", 8F))));
-		prijelazi.put("B", new ArrayList<> ( List.of(new Pair<>("D", 1F))));
-		prijelazi.put("C",new ArrayList<> (  List.of(new Pair<>("E", 8F))));
-		prijelazi.put("D",new ArrayList<> ( Arrays.asList(new Pair<>("E", 1F), new Pair<>("G", 8F))));
-		prijelazi.put("E",new ArrayList<> ( Arrays.asList(new Pair<>("H", 1F), new Pair<>("D", 1F))));
-		prijelazi.put("H",new ArrayList<> ( List.of(new Pair<>("G", 1F))));
-		Kvintet i=SearchAlgorithm("A",finals,null,prijelazi,0);//BFS
-		Kvintet u=SearchAlgorithm("A",finals,null,prijelazi,1);//UCS*/
-
 	}
 
-	private static PriorityQueue<OptimisticState> CheckOptimistic(ArrayList<String> starters, HashMap<String, Float> heauristika, HashMap<String, ArrayList<Pair<String, Float>>> prijelazi)
+	private static PriorityQueue<OptimisticState> CheckOptimistic(ArrayList<String> starters, HashMap<String, Float> heauristika, HashMap<String, SortedSet<Pair<String, Float>>> prijelazi)
 	{
 
 		HashSet<String> visited=new HashSet<>();
@@ -184,7 +189,7 @@ public class Solution {
 	}
 
 
-	public static Kvintet SearchAlgorithm(String first, ArrayList<String> finals,HashMap<String,Float> Heauristika, HashMap<String,ArrayList<Pair<String,Float>>>prijelazi,int mode)
+	public static Kvintet SearchAlgorithm(String first, ArrayList<String> finals,HashMap<String,Float> Heauristika, HashMap<String,SortedSet<Pair<String,Float>>>prijelazi,int mode)
 	{
 		float temp=0;
 		if(mode==2)
@@ -328,6 +333,8 @@ class NodeComparatorForUCS implements Comparator<Node>
 	 public int compare(Node o1, Node o2)
 	 {
 		 float x = o1.getTotalCost()-o2.getTotalCost();
+		 if(x==0)
+			 return o1.getName().compareTo(o2.getName());
 		 return (int) (Math.signum(x) == 1 ? Math.ceil(x) : Math.floor(x));
 	 }
 
@@ -338,9 +345,19 @@ class NodeComparatorForUCS implements Comparator<Node>
 	public int compare(Node o1, Node o2)
 	{
 		float x = o1.getAproximate()-o2.getAproximate();
+		if(x==0)
+			return o1.getName().compareTo(o2.getName());
 		return (int) (Math.signum(x) == 1 ? Math.ceil(x) : Math.floor(x));
 	}
 
+}
+class PairComparator implements Comparator<Pair<String,Float>>
+{
+	@Override
+	public int compare(Pair<String,Float> o1, Pair<String,Float> o2)
+	{
+			return o1.getFirst().compareTo(o2.getFirst());
+	}
 }
 class OptimisticStateComparator implements Comparator<OptimisticState>
 {
@@ -348,6 +365,15 @@ class OptimisticStateComparator implements Comparator<OptimisticState>
 	public int compare(OptimisticState o1, OptimisticState o2)
 	{
 		return (o1.getName().compareTo(o2.getName()));
+	}
+
+}
+class ConsistentStateComparator implements Comparator<ConsistentState>
+{
+	@Override
+	public int compare(ConsistentState o1, ConsistentState o2)
+	{
+		return (o1.getParentName().compareTo(o2.getParentName()));
 	}
 
 }
@@ -533,5 +559,44 @@ class OptimisticState
 
 	public void setActualCost(Float actualCost) {
 		this.actualCost = actualCost;
+	}
+}
+
+class ConsistentState
+{
+	String parentName;
+	String childName;
+
+	boolean state;
+
+	Float cost;
+	Float estimateParent;
+	Float estimateChild;
+
+	public ConsistentState(String parentName, String childName, Float cost, Float estimateParent, Float estimateChild) {
+		this.parentName = parentName;
+		this.childName = childName;
+		this.cost = cost;
+		this.estimateParent = estimateParent;
+		this.estimateChild = estimateChild;
+		this.state=(estimateParent-estimateChild<=cost);
+	}
+	@Override
+	public String toString() {
+		return "[CONDITION]: ["+formatStatus(this.state)+"] h("+parentName+") <= h("+childName+") + c: "+estimateParent+" <= "+estimateChild+" + "+cost;
+	}
+	private String formatStatus(boolean status)
+	{
+		if(status)
+			return "OK";
+		return "ERR";
+	}
+
+	public String getParentName() {
+		return parentName;
+	}
+
+	public boolean isState() {
+		return state;
 	}
 }
