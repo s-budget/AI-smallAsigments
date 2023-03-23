@@ -8,6 +8,10 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 
+//Cosulted with:
+//               Leona Slihovic
+//               Karlo Boros
+
 public class Solution {
 
 	public static void main(String ... args) {
@@ -47,6 +51,7 @@ public class Solution {
 				konsistent = true;
 			}
 		}
+
 
 		Charset charset = StandardCharsets.UTF_8;
 		HashMap<String,Float> heauristika=null;
@@ -94,7 +99,7 @@ public class Solution {
 						if(konsistent)
 							consistentStates.add(new ConsistentState(start,temppName,temppValue, Objects.requireNonNull(heauristika).get(start),heauristika.get(temppName)));
 
-						reversePrijelazi.putIfAbsent(temppName, new TreeSet<Pair<String, Float>>(new PairComparator()));
+						reversePrijelazi.putIfAbsent(temppName, new TreeSet<>(new PairComparator()));
 						SortedSet<Pair<String,Float>>tempDestinations=reversePrijelazi.get(temppName);
 						tempDestinations.add(new Pair<>(start,temppValue));
 						reversePrijelazi.put(temppName,tempDestinations);
@@ -198,6 +203,8 @@ public class Solution {
 		}
 		Node pocetni=new Node(first,null,0,temp,0);
 		LinkedList<String> path=new LinkedList<>();
+
+		HashMap<String,Float> visitedAstar= new HashMap<>();
 		HashSet<String> visited=new HashSet<>();
 		if(finals.contains(pocetni.getName()))
 		{
@@ -218,7 +225,10 @@ public class Solution {
 		while(!red.isEmpty())
 		{
 			Node prvi=red.remove();
-			visited.add(prvi.getName());
+			if(mode==2)
+				visitedAstar.put(prvi.getName(),prvi.getTotalCost());
+			else
+				visited.add(prvi.getName());
 			if( finals.contains(prvi.getName()))
 			{
 				solution=new Node(prvi.getName(),prvi.getParent(),prvi.getTotalCost(),prvi.getTotalCost(),prvi.getDepth());
@@ -235,15 +245,21 @@ public class Solution {
 					 		red.clear();
 							break;
 					 }*/
-				 if(!visited.contains(par.first))
+				//Code changed based on http://java.zemris.fer.hr/nastava/ui/apps/apps-20200313.pdf#section.2.1
+				if(mode==2 )
+				{
+					if(!visitedAstar.containsKey(par.getFirst()) || visitedAstar.get(par.getFirst()) > par.getSecond())
+					{
+						temp=prvi.getTotalCost()+par.second+Heauristika.get(par.first);
+						red.add(new Node(par.first,prvi,prvi.getTotalCost()+par.second,temp,prvi.getDepth()+1));
+					}
+				}
+				else if(!visited.contains(par.first))
 				 {
 					 temp=0F;
-					 if(mode==2)
-					 {
-						 temp=prvi.getTotalCost()+par.second+Heauristika.get(par.first);
-					 }
 					 red.add(new Node(par.first,prvi,prvi.getTotalCost()+par.second,temp,prvi.getDepth()+1));
 				 }
+
 			}
 		 }
 		 if(solution==null)
@@ -283,10 +299,6 @@ class Node
 		return Aproximate;
 	}
 
-	public void setAproximate(float aproximate) {
-		Aproximate = aproximate;
-	}
-
 	public Node(String name, Node parent, float TotalCOst,float Aproximate, int Depth) {
 		this.name = name;
 		Parent = parent;
@@ -299,33 +311,18 @@ class Node
 		return name;
 	}
 
-	public void setName(String name) {
-		this.name = name;
-	}
-
 	public Node getParent() {
 		return Parent;
-	}
-
-	public void setParent(Node parent) {
-		Parent = parent;
 	}
 
 	public float getTotalCost() {
 		return TotalCost;
 	}
 
-	public void setTotalCost(float totalCost) {
-		TotalCost = totalCost;
-	}
-
 	public int getDepth() {
 		return depth;
 	}
 
-	public void setDepth(int depth) {
-		this.depth = depth;
-	}
 }
 class NodeComparatorForUCS implements Comparator<Node>
 {
@@ -392,16 +389,8 @@ class Pair<K,T>
 		return first;
 	}
 
-	public void setFirst(K first) {
-		this.first = first;
-	}
-
 	public T getSecond() {
 		return second;
-	}
-
-	public void setSecond(T second) {
-		this.second = second;
 	}
 
 	@Override
@@ -460,45 +449,6 @@ class Kvintet
 		Path = path;
 	}
 
-	public boolean isFoundSolution() {
-		return foundSolution;
-	}
-
-	public void setFoundSolution(boolean foundSolution) {
-		this.foundSolution = foundSolution;
-	}
-
-	public int getStatesVisited() {
-		return statesVisited;
-	}
-
-	public void setStatesVisited(int statesVisited) {
-		this.statesVisited = statesVisited;
-	}
-
-	public int getPathLength() {
-		return pathLength;
-	}
-
-	public void setPathLength(int pathLength) {
-		this.pathLength = pathLength;
-	}
-
-	public float getTotalCost() {
-		return totalCost;
-	}
-
-	public void setTotalCost(float totalCost) {
-		this.totalCost = totalCost;
-	}
-
-	public LinkedList<String> getPath() {
-		return Path;
-	}
-
-	public void setPath(LinkedList<String> path) {
-		Path = path;
-	}
 }
 
 class OptimisticState
@@ -533,33 +483,10 @@ class OptimisticState
 		return name;
 	}
 
-	public void setName(String name) {
-		this.name = name;
-	}
-
 	public boolean isStatus() {
 		return status;
 	}
 
-	public void setStatus(boolean status) {
-		this.status = status;
-	}
-
-	public Float getHeuristic() {
-		return heuristic;
-	}
-
-	public void setHeuristic(Float heuristic) {
-		this.heuristic = heuristic;
-	}
-
-	public Float getActualCost() {
-		return actualCost;
-	}
-
-	public void setActualCost(Float actualCost) {
-		this.actualCost = actualCost;
-	}
 }
 
 class ConsistentState
