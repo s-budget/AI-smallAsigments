@@ -25,7 +25,7 @@ public class Solution {
 		}
 		pathStart=args[1];
 
-		HashSet<Izraz> ulazniIzrazi=new HashSet();
+		HashSet<Izraz> ulazniIzrazi=new HashSet<>();
 		Izraz ciljniIzraz=null;
 
 		Charset charset = StandardCharsets.UTF_8;
@@ -35,14 +35,12 @@ public class Solution {
 			List<String> lines = Files.readAllLines(filePath, charset);
 			lines.removeIf(str -> str.startsWith("#"));
 			for(int i=0;i< lines.size();i++) {
-				if(mode==0 && i==lines.size()-1)
-				{
-					ciljniIzraz=new Izraz(lines.get(i));
+				if(mode==0 && i==lines.size()-1) {
+					ciljniIzraz=new Izraz(lines.get(i).toLowerCase());
 					break;
 				}
-				Izraz a=new Izraz(lines.get(i));
-				if (!a.isTautalogija())
-				{
+				Izraz a=new Izraz(lines.get(i).toLowerCase());
+				if (!a.isTautalogija()) {
 					ulazniIzrazi.add(a);
 				}
 			}
@@ -50,30 +48,25 @@ public class Solution {
 			System.out.format("I/O error: %s%n", ex);
 		}
 		HashSet<Izraz> trebaIZbrisati=new HashSet<>();
-		for(Izraz i : ulazniIzrazi)
-		{
-			for (Izraz u : ulazniIzrazi)
-			{
+		for(Izraz i : ulazniIzrazi) {
+			for (Izraz u : ulazniIzrazi) {
 				if(u.equals(i))
 					break;
-				if(i.getClanovi().containsAll(u.getClanovi()))
-				{
+				if(i.getClanovi().containsAll(u.getClanovi())) {
 					trebaIZbrisati.add(i);
 					break;
 				}
-				if(u.getClanovi().containsAll(i.getClanovi()))
-				{
+				if(u.getClanovi().containsAll(i.getClanovi())) {
 					trebaIZbrisati.add(u);
 				}
 			}
 		}
-		for(Izraz i :trebaIZbrisati)
-		{
+		for(Izraz i :trebaIZbrisati) {
 			ulazniIzrazi.remove(i);
 		}
 
 		if(mode==0) {//do resolution
-
+			provjeriIzraz(ciljniIzraz,ulazniIzrazi);
 		}
 
 
@@ -83,15 +76,56 @@ public class Solution {
 			try {
 				List<String> lines = Files.readAllLines(filePath, charset);
 				lines.removeIf(str -> str.startsWith("#"));
-				for(String pair : lines);//split stuff
-				//heauristika.put(pair.split(": ")[0], Float.parseFloat(pair.split(": ")[1]));
+				for (String line : lines)//split stuff
+				{
+					String[] pair = line.toLowerCase().split(" ");
+					Izraz temp = new Izraz(pair[0]);
+					if (pair[1].equals("-")) {
+						ulazniIzrazi.remove(temp);
+						System.out.println("User’s command: " + line + "\nremoved " + pair[0]);
+					} else if (pair[1].equals("+")) {
+						if (!temp.isTautalogija()) {
+							ulazniIzrazi.add(temp);
+						}
+						for (Izraz u : ulazniIzrazi) {
+							if (u.equals(temp))
+								break;
+							if (temp.getClanovi().containsAll(u.getClanovi())) {
+								ulazniIzrazi.remove(temp);
+								break;
+							}
+							if (u.getClanovi().containsAll(temp.getClanovi())) {
+								ulazniIzrazi.remove(u);
+							}
+						}
+						ulazniIzrazi.remove(temp);
+						System.out.println("User’s command: " + line + "\nadded " + pair[0]);
+
+					} else if (pair[1].equals("?")) {
+						provjeriIzraz(temp, ulazniIzrazi);
+					}
+
+
+				}
 
 
 			} catch (IOException ex) {
 				System.out.format("I/O error: %s%n", ex);
 			}
 		}
-		System.exit(1);
+
+	}
+
+	public static void provjeriIzraz(Izraz cilj,HashSet<Izraz> PocetniSkup) {
+		HashMap<String,Pair<String,String>> deductedFrom=new HashMap<>();
+
+		HashSet<Atom> tempSet=new HashSet<>();
+		Atom tempAtom =cilj.getClanovi().iterator().next().negate();
+		tempSet.add(tempAtom);
+		Izraz negiraniCilj=new Izraz(tempSet);
+
+
+
 
 	}
 
@@ -189,6 +223,17 @@ class Atom
 	public int hashCode() {
 		return Objects.hash(getOznaka(), isNegated());
 	}
+
+	@Override
+	public String toString() {
+		return  getNegForFormating(negated)+oznaka;
+	}
+
+	String getNegForFormating(boolean a) {
+		if(a)
+			return "~";
+		return "";
+	}
 }
 
 class Izraz
@@ -211,6 +256,17 @@ class Izraz
 				tautalogija=true;
 			}
 		}
+	}
+
+	public Izraz(HashSet<Atom> clanovi) {
+		this.clanovi = clanovi;
+		originalniOblik="";
+		brojClanova=clanovi.size();
+		for (Atom i : clanovi) {
+			originalniOblik+=" "+i+" v";
+
+		}
+		originalniOblik=originalniOblik.substring(1,originalniOblik.length()-2);
 	}
 
 	public int getBrojClanova() {
