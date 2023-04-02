@@ -66,7 +66,7 @@ public class Solution {
 		}
 
 		if (mode == 0) {//do resolution
-			System.out.println(formatStatus(provjeriIzraz(ciljniIzraz, ulazniIzrazi), ciljniIzraz.getOriginalniOblik()));
+			System.out.println(formatStatus(provjeriIzraz(Objects.requireNonNull(ciljniIzraz), ulazniIzrazi), ciljniIzraz.getOriginalniOblik()));
 		}
 
 
@@ -118,159 +118,80 @@ public class Solution {
 
 	public static boolean provjeriIzraz(Izraz cilj, HashSet<Izraz> ulazniSkup) {
 		HashMap<String, Pair<String, String>> deductedFrom = new HashMap<>();
-		ArrayList<String> raspad=new ArrayList<>();
 		HashSet<String> pocetniIzrazi = new HashSet<>();
-		ulazniSkup.forEach((n) -> {
-			pocetniIzrazi.add(n.getOriginalniOblik());
-		});
+		ulazniSkup.forEach((n) -> pocetniIzrazi.add(n.getOriginalniOblik()));
 
 
 		HashSet<Izraz> dodatniSkup = new HashSet<>();
 		HashSet<Atom> tempSet = new HashSet<>();
-		cilj.getClanovi().forEach(a ->
-		{
-tempSet.add(new Atom(a.getOznaka(),a.isNegated()));
-
-		});
+		cilj.getClanovi().forEach(a -> tempSet.add(new Atom(a.getOznaka(),a.isNegated())));
 		for (Atom tempAtom : tempSet) {
-
 			Izraz negiraniCilj = new Izraz(tempAtom.getOznaka(), !tempAtom.isNegated());
 			dodatniSkup.add(negiraniCilj);
-			raspad.add(negiraniCilj+" <== [ ~("+cilj.getOriginalniOblik()+") ]");
+		}
+
+		HashSet<Izraz> pocetniSkup = new HashSet<>(ulazniSkup);
 
 
-			HashSet<Izraz> pocetniSkup = new HashSet<>();
-			pocetniSkup.addAll(ulazniSkup);
-
-
-			boolean promjena = true;
-			while (promjena) {
-				promjena = false;
-				Deque<Izraz> red = new ArrayDeque<>(dodatniSkup);
-				//for(Izraz dodatni1:dodatniSkup) {
-				while (!red.isEmpty()) {
-					Izraz dodatni1 = red.pop();
-
-					HashSet<Atom> negiraniUzrok = new HashSet<>();
-					dodatni1.getClanovi().forEach(a -> negiraniUzrok.add(new Atom(a.getOznaka(), !a.isNegated())));
-					HashSet<Izraz> trebaIzbrisati = new HashSet<>();
-					for (Izraz pocetni : pocetniSkup) {
-						if (pocetni.getClanovi().containsAll(negiraniUzrok)) {
-							promjena = true;
-							HashSet<Atom> temp = new HashSet<>();
-							for (Atom a : pocetni.getClanovi()) {
-
-
-								if (!negiraniUzrok.contains(a)) {
-									temp.add(new Atom(a.getOznaka(), a.isNegated()));
-								}
-
-							}
-							trebaIzbrisati.add(pocetni);
-							if (temp.size() == 0) {
-								deductedFrom.put("#NILL", new Pair<>(pocetni.getOriginalniOblik(), dodatni1.getOriginalniOblik()));
-								IspisTrue(deductedFrom, pocetniIzrazi, cilj.getOriginalniOblik());
-
-								return true;
-
-							}
-							Izraz tempIzraz = new Izraz(temp);
-							dodatniSkup.add(tempIzraz);
-							red.add(tempIzraz);
-							deductedFrom.put(tempIzraz.getOriginalniOblik(), new Pair<>(pocetni.getOriginalniOblik(), dodatni1.getOriginalniOblik()));
-
-						} else if (negiraniUzrok.containsAll(pocetni.getClanovi())) {
-							promjena = true;
-							HashSet<Atom> temp = new HashSet<>();
-							for (Atom a : negiraniUzrok) {
-
-
-								if (!pocetni.getClanovi().contains(a)) {
-									temp.add(new Atom(a.getOznaka(), !a.isNegated()));
-								}
-
-							}
-							trebaIzbrisati.add(dodatni1);
-							if (temp.size() == 0) {
-								deductedFrom.put("#NILL", new Pair<>(pocetni.getOriginalniOblik(), dodatni1.getOriginalniOblik()));
-								IspisTrue(deductedFrom, pocetniIzrazi, cilj.getOriginalniOblik());
-
-								return true;
-
-							}
-							Izraz tempIzraz = new Izraz(temp);
-							dodatniSkup.add(tempIzraz);
-							red.add(tempIzraz);
-							deductedFrom.put(tempIzraz.getOriginalniOblik(), new Pair<>(pocetni.getOriginalniOblik(), dodatni1.getOriginalniOblik()));
-							break;
-						}
-
-					}
-					for (Izraz i : trebaIzbrisati) {
-						pocetniSkup.remove(i);
-						dodatniSkup.remove(i);
-					}
-
-				}
-				HashSet<Izraz> dodatniSkupTemp = new HashSet<>();
+		boolean promjena = true;
+		while (promjena) {
+			promjena = false;
+			Deque<Izraz> red = new ArrayDeque<>(dodatniSkup);
+			//for(Izraz dodatni1:dodatniSkup) {
+			while (!red.isEmpty()) {
+				Izraz dodatni1 = red.pop();
+				HashSet<Atom> negiraniUzrok = new HashSet<>();
+				dodatni1.getClanovi().forEach(a -> negiraniUzrok.add(new Atom(a.getOznaka(), !a.isNegated())));
 				HashSet<Izraz> trebaIzbrisati = new HashSet<>();
-				for (Izraz pocetni : dodatniSkup) {
+				for (Izraz pocetni : pocetniSkup) {
+					if(trebaIzbrisati.contains(pocetni))
+						continue;
+					if(pocetni.getClanovi().stream().anyMatch(negiraniUzrok::contains)) {
+						HashSet<Atom>tempset =new HashSet<>(pocetni.getClanovi());
+						tempset.retainAll(negiraniUzrok);
+						if (tempset.size()==1)
 
-					HashSet<Atom> negiraniUzrok = new HashSet<>();
-					pocetni.getClanovi().forEach(a -> negiraniUzrok.add(new Atom(a.getOznaka(), !a.isNegated())));
+						{
 
-					for (Izraz dodatni1 : dodatniSkup) {
-						if (dodatni1.equals(pocetni))
-							continue;
-						if (dodatni1.getClanovi().containsAll(negiraniUzrok)) {
-							promjena = true;
-							HashSet<Atom> temp = new HashSet<>();
-							for (Atom a : dodatni1.getClanovi()) {
-
-
-								if (!negiraniUzrok.contains(a)) {
-									temp.add(new Atom(a.getOznaka(), a.isNegated()));
-								}
-
-							}
-							trebaIzbrisati.add(dodatni1);
-							if (temp.size() == 0) {
+							HashSet<Atom> noviSet=new HashSet<>(pocetni.getClanovi());
+							noviSet.addAll(dodatni1.getClanovi());
+							tempset.forEach(n -> {noviSet.remove(n);noviSet.remove(n.negate());});
+							if(noviSet.size()==0)
+							{
 								deductedFrom.put("#NILL", new Pair<>(pocetni.getOriginalniOblik(), dodatni1.getOriginalniOblik()));
 								IspisTrue(deductedFrom, pocetniIzrazi, cilj.getOriginalniOblik());
-
 								return true;
-
 							}
-							Izraz tempIzraz = new Izraz(temp);
-							dodatniSkupTemp.add(tempIzraz);
-							red.add(tempIzraz);
-							deductedFrom.put(tempIzraz.getOriginalniOblik(), new Pair<>(pocetni.getOriginalniOblik(), dodatni1.getOriginalniOblik()));
+							if(!dodatniSkup.contains(new Izraz(noviSet)) && !pocetniSkup.contains(new Izraz(noviSet)))//ne zelimo duplice
+							{
 
-						} else if (negiraniUzrok.containsAll(dodatni1.getClanovi())) {
-							promjena = true;
-							HashSet<Atom> temp = new HashSet<>();
-							for (Atom a : negiraniUzrok) {
-
-
-								if (!dodatni1.getClanovi().contains(a)) {
-									temp.add(new Atom(a.getOznaka(), a.isNegated()));
+								Izraz tempIzraz = new Izraz(noviSet);
+								if (!tempIzraz.isTautalogija()) {
+									promjena = true;
+									red.add(tempIzraz);
+									dodatniSkup.add(tempIzraz);
+									deductedFrom.put(tempIzraz.getOriginalniOblik(), new Pair<>(pocetni.getOriginalniOblik(), dodatni1.getOriginalniOblik()));
+									for (Izraz pocetni2 : pocetniSkup)//brisanje nadizraza u pocetnom
+									{
+										if (pocetni2.getClanovi().size() > tempIzraz.getClanovi().size()) {
+											if (pocetni2.getClanovi().containsAll(tempIzraz.getClanovi())) {
+												trebaIzbrisati.add(pocetni2);
+											}
+										}
+									}
+									for (Izraz dodatni2 : dodatniSkup)//brisanje nadizraza u dodatnom
+									{
+										if (dodatni2.getClanovi().size() > tempIzraz.getClanovi().size()) {
+											if (dodatni2.getClanovi().containsAll(tempIzraz.getClanovi())) {
+												trebaIzbrisati.add(dodatni2);
+												red.remove(dodatni2);
+											}
+										}
+									}
 								}
-
 							}
-							trebaIzbrisati.add(pocetni);
-							if (temp.size() == 0) {
-								deductedFrom.put("#NILL", new Pair<>(pocetni.getOriginalniOblik(), dodatni1.getOriginalniOblik()));
-								IspisTrue(deductedFrom, pocetniIzrazi, cilj.getOriginalniOblik());
-
-								return true;
-
-							}
-							Izraz tempIzraz = new Izraz(temp);
-							dodatniSkupTemp.add(tempIzraz);
-							red.add(tempIzraz);
-							deductedFrom.put(tempIzraz.getOriginalniOblik(), new Pair<>(pocetni.getOriginalniOblik(), dodatni1.getOriginalniOblik()));
-							break;
 						}
+
 
 					}
 
@@ -279,13 +200,85 @@ tempSet.add(new Atom(a.getOznaka(),a.isNegated()));
 				for (Izraz i : trebaIzbrisati) {
 					pocetniSkup.remove(i);
 					dodatniSkup.remove(i);
-				}
-				for (Izraz i : dodatniSkupTemp) {
-					dodatniSkup.add(i);
+					red.remove(i);
 				}
 
 			}
+			HashSet<Izraz> dodatniSkupTemp = new HashSet<>();
+			HashSet<Izraz> trebaIzbrisati = new HashSet<>();
+			for (Izraz pocetni : dodatniSkup) {
+
+				HashSet<Atom> negiraniUzrok = new HashSet<>();
+				pocetni.getClanovi().forEach(a -> negiraniUzrok.add(new Atom(a.getOznaka(), !a.isNegated())));
+
+				for (Izraz dodatni1 : dodatniSkup) {
+					if (dodatni1.equals(pocetni))
+						continue;
+					if (dodatni1.getClanovi().containsAll(negiraniUzrok)) {
+						promjena = true;
+						HashSet<Atom> temp = new HashSet<>();
+						for (Atom a : dodatni1.getClanovi()) {
+
+
+							if (!negiraniUzrok.contains(a)) {
+								temp.add(new Atom(a.getOznaka(), a.isNegated()));
+							}
+
+						}
+						trebaIzbrisati.add(dodatni1);
+						if (temp.size() == 0) {
+							deductedFrom.put("#NILL", new Pair<>(pocetni.getOriginalniOblik(), dodatni1.getOriginalniOblik()));
+							IspisTrue(deductedFrom, pocetniIzrazi, cilj.getOriginalniOblik());
+
+							return true;
+
+						}
+						Izraz tempIzraz = new Izraz(temp);
+						dodatniSkupTemp.add(tempIzraz);
+						red.add(tempIzraz);
+						deductedFrom.put(tempIzraz.getOriginalniOblik(), new Pair<>(pocetni.getOriginalniOblik(), dodatni1.getOriginalniOblik()));
+
+					} else if (negiraniUzrok.containsAll(dodatni1.getClanovi())) {
+						promjena = true;
+						HashSet<Atom> temp = new HashSet<>();
+						for (Atom a : negiraniUzrok) {
+
+
+							if (!dodatni1.getClanovi().contains(a)) {
+								temp.add(new Atom(a.getOznaka(), a.isNegated()));
+							}
+
+						}
+						trebaIzbrisati.add(pocetni);
+						if (temp.size() == 0) {
+							deductedFrom.put("#NILL", new Pair<>(pocetni.getOriginalniOblik(), dodatni1.getOriginalniOblik()));
+							IspisTrue(deductedFrom, pocetniIzrazi, cilj.getOriginalniOblik());
+
+							return true;
+
+						}
+						Izraz tempIzraz = new Izraz(temp);
+						dodatniSkupTemp.add(tempIzraz);
+						red.add(tempIzraz);
+						deductedFrom.put(tempIzraz.getOriginalniOblik(), new Pair<>(pocetni.getOriginalniOblik(), dodatni1.getOriginalniOblik()));
+						break;
+					}
+
+				}
+
+
+			}
+			for (Izraz i : trebaIzbrisati) {
+				pocetniSkup.remove(i);
+				dodatniSkup.remove(i);
+			}
+			dodatniSkup.addAll(dodatniSkupTemp);
+			if(!promjena) {
+
+			}
+
 		}
+
 		return false;
 	}
 
@@ -302,8 +295,7 @@ tempSet.add(new Atom(a.getOznaka(),a.isNegated()));
 
 				if(!deductedFrom.containsKey(formula) && !pocetniIzrazi.contains(formula) && !ostaliPrvi.contains(formula)) {
 					ostaliPrvi.add(formula);
-				}
-				else {
+				} else {
 
 					pocetni.add(formula);
 				}
