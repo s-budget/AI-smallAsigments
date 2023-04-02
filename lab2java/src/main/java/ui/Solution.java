@@ -8,7 +8,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 
-//Cosulted with:
+//Cosulted with: Leona Salihović
 
 
 
@@ -25,6 +25,7 @@ public class Solution {
 		}
 		pathStart = args[1];
 
+		//deklaracija pocetnih parametara
 		HashSet<Izraz> ulazniIzrazi = new HashSet<>();
 		Izraz ciljniIzraz = null;
 
@@ -47,6 +48,8 @@ public class Solution {
 		} catch (IOException ex) {
 			System.out.format("I/O error: %s%n", ex);
 		}
+
+		//rjesavanje redundantnih izraza
 		HashSet<Izraz> trebaIZbrisati = new HashSet<>();
 		for (Izraz i : ulazniIzrazi) {
 			for (Izraz u : ulazniIzrazi) {
@@ -69,51 +72,51 @@ public class Solution {
 			System.out.println(formatStatus(provjeriIzraz(Objects.requireNonNull(ciljniIzraz), ulazniIzrazi), ciljniIzraz.getOriginalniOblik()));
 		}
 
-
-		if (mode == 1) {
-
+		if (mode == 1) {//do cooking
 			filePath = Paths.get(pathComands);
 			try {
 				List<String> lines = Files.readAllLines(filePath, charset);
 				lines.removeIf(str -> str.startsWith("#"));
 				for (String line : lines)//split stuff
 				{
-					String[] pair = line.toLowerCase().split(" ");
+					String[] pair = new String[2];
+					pair[0] = line.toLowerCase().substring(0,line.length()-2);
+					pair[1] = String.valueOf(line.toLowerCase().charAt(line.length()-1));
 					Izraz temp = new Izraz(pair[0]);
+					System.out.println("");
 					if (pair[1].equals("-")) {
 						ulazniIzrazi.remove(temp);
 						System.out.println("User’s command: " + line + "\nremoved " + pair[0]);
-					} else if (pair[1].equals("+")) {
-						if (!temp.isTautalogija()) {
+					} else if (pair[1].equals("+"))
+					{
+						if (!temp.isTautalogija())
+						{
 							ulazniIzrazi.add(temp);
 						}
-						for (Izraz u : ulazniIzrazi) {
+						for (Izraz u : ulazniIzrazi)
+						{
 							if (u.equals(temp))
 								break;
-							if (temp.getClanovi().containsAll(u.getClanovi())) {
+							if (temp.getClanovi().containsAll(u.getClanovi()))
+							{
 								ulazniIzrazi.remove(temp);
 								break;
 							}
-							if (u.getClanovi().containsAll(temp.getClanovi())) {
+							if (u.getClanovi().containsAll(temp.getClanovi()))
+							{
 								ulazniIzrazi.remove(u);
 							}
 						}
-						ulazniIzrazi.remove(temp);
 						System.out.println("User’s command: " + line + "\nadded " + pair[0]);
-
 					} else if (pair[1].equals("?")) {
+						System.out.println("User’s command: " + line);
 						System.out.println(formatStatus(provjeriIzraz(temp, ulazniIzrazi), temp.getOriginalniOblik()));
 					}
-
-
 				}
-
-
 			} catch (IOException ex) {
 				System.out.format("I/O error: %s%n", ex);
 			}
 		}
-
 	}
 
 	public static boolean provjeriIzraz(Izraz cilj, HashSet<Izraz> ulazniSkup) {
@@ -121,7 +124,7 @@ public class Solution {
 		HashSet<String> pocetniIzrazi = new HashSet<>();
 		ulazniSkup.forEach((n) -> pocetniIzrazi.add(n.getOriginalniOblik()));
 
-
+		//negiranje cilja
 		HashSet<Izraz> dodatniSkup = new HashSet<>();
 		HashSet<Atom> tempSet = new HashSet<>();
 		cilj.getClanovi().forEach(a -> tempSet.add(new Atom(a.getOznaka(),a.isNegated())));
@@ -130,33 +133,35 @@ public class Solution {
 			dodatniSkup.add(negiraniCilj);
 		}
 
+		//kopiranje pocetnog skupa because reference and stuff
 		HashSet<Izraz> pocetniSkup = new HashSet<>(ulazniSkup);
 
 
-		boolean promjena = true;
+		boolean promjena = true;//dokle god se promjene desavaju trazi nove promjene
 		while (promjena) {
 			promjena = false;
+
+
+			//za svaki izraz iz dodatnog(SOS) skupa provjeri sve pocetne izraze
 			Deque<Izraz> red = new ArrayDeque<>(dodatniSkup);
-			//for(Izraz dodatni1:dodatniSkup) {
 			while (!red.isEmpty()) {
 				Izraz dodatni1 = red.pop();
+				//negiraj sve Atome iz izraza
 				HashSet<Atom> negiraniUzrok = new HashSet<>();
 				dodatni1.getClanovi().forEach(a -> negiraniUzrok.add(new Atom(a.getOznaka(), !a.isNegated())));
 				HashSet<Izraz> trebaIzbrisati = new HashSet<>();
 				for (Izraz pocetni : pocetniSkup) {
-					if(trebaIzbrisati.contains(pocetni))
+					if(trebaIzbrisati.contains(pocetni))//nema potrebe provjeravati vec iskoristene i/ili redundantne izraze
 						continue;
 					if(pocetni.getClanovi().stream().anyMatch(negiraniUzrok::contains)) {
 						HashSet<Atom>tempset =new HashSet<>(pocetni.getClanovi());
 						tempset.retainAll(negiraniUzrok);
-						if (tempset.size()==1)
-
+						if (tempset.size()==1) //ako se slaze 0 onda nemozemo nist zakljuciti, ako se slaze vise reziultat je tautalogija pa nam nije bitno
 						{
-
 							HashSet<Atom> noviSet=new HashSet<>(pocetni.getClanovi());
 							noviSet.addAll(dodatni1.getClanovi());
 							tempset.forEach(n -> {noviSet.remove(n);noviSet.remove(n.negate());});
-							if(noviSet.size()==0)
+							if(noviSet.size()==0) //pronasli nill
 							{
 								deductedFrom.put("#NILL", new Pair<>(pocetni.getOriginalniOblik(), dodatni1.getOriginalniOblik()));
 								IspisTrue(deductedFrom, pocetniIzrazi, cilj.getOriginalniOblik());
@@ -201,67 +206,70 @@ public class Solution {
 					pocetniSkup.remove(i);
 					dodatniSkup.remove(i);
 					red.remove(i);
-				}
+				}//Brisemo redundantne i iskoristene izraze
 
 			}
-			HashSet<Izraz> dodatniSkupTemp = new HashSet<>();
+			red= new ArrayDeque<>(dodatniSkup);
 			HashSet<Izraz> trebaIzbrisati = new HashSet<>();
-			for (Izraz pocetni : dodatniSkup) {
-
+			//poavljamo istu stvar ali unutar SOSxSOS odnosa
+			while (!red.isEmpty()) {
+				Izraz dodatni1 = red.pop();
+				if(trebaIzbrisati.contains(dodatni1))
+					continue;
 				HashSet<Atom> negiraniUzrok = new HashSet<>();
-				pocetni.getClanovi().forEach(a -> negiraniUzrok.add(new Atom(a.getOznaka(), !a.isNegated())));
+				dodatni1.getClanovi().forEach(a -> negiraniUzrok.add(new Atom(a.getOznaka(), !a.isNegated())));
 
-				for (Izraz dodatni1 : dodatniSkup) {
-					if (dodatni1.equals(pocetni))
+				Deque<Izraz> unutarnjiRed=new ArrayDeque<>(dodatniSkup);
+				while (!unutarnjiRed.isEmpty())
+				{
+					Izraz dodatni2 = unutarnjiRed.pop();
+					if (dodatni1.equals(dodatni2) || trebaIzbrisati.contains(dodatni2))
 						continue;
-					if (dodatni1.getClanovi().containsAll(negiraniUzrok)) {
-						promjena = true;
-						HashSet<Atom> temp = new HashSet<>();
-						for (Atom a : dodatni1.getClanovi()) {
-
-
-							if (!negiraniUzrok.contains(a)) {
-								temp.add(new Atom(a.getOznaka(), a.isNegated()));
+					if(dodatni2.getClanovi().stream().anyMatch(negiraniUzrok::contains)) {
+						HashSet<Atom>tempset =new HashSet<>(dodatni2.getClanovi());
+						tempset.retainAll(negiraniUzrok);
+						if (tempset.size()==1) {
+							HashSet<Atom> noviSet=new HashSet<>(dodatni2.getClanovi());
+							noviSet.addAll(dodatni1.getClanovi());
+							tempset.forEach(n -> {noviSet.remove(n);noviSet.remove(n.negate());});
+							if(noviSet.size()==0) {
+								deductedFrom.put("#NILL", new Pair<>(dodatni2.getOriginalniOblik(), dodatni1.getOriginalniOblik()));
+								IspisTrue(deductedFrom, pocetniIzrazi, cilj.getOriginalniOblik());
+								return true;
 							}
+							if(!dodatniSkup.contains(new Izraz(noviSet)) && !pocetniSkup.contains(new Izraz(noviSet)))//ne zelimo duplice
+							{
 
-						}
-						trebaIzbrisati.add(dodatni1);
-						if (temp.size() == 0) {
-							deductedFrom.put("#NILL", new Pair<>(pocetni.getOriginalniOblik(), dodatni1.getOriginalniOblik()));
-							IspisTrue(deductedFrom, pocetniIzrazi, cilj.getOriginalniOblik());
-
-							return true;
-
-						}
-						Izraz tempIzraz = new Izraz(temp);
-						dodatniSkupTemp.add(tempIzraz);
-						red.add(tempIzraz);
-						deductedFrom.put(tempIzraz.getOriginalniOblik(), new Pair<>(pocetni.getOriginalniOblik(), dodatni1.getOriginalniOblik()));
-
-					} else if (negiraniUzrok.containsAll(dodatni1.getClanovi())) {
-						promjena = true;
-						HashSet<Atom> temp = new HashSet<>();
-						for (Atom a : negiraniUzrok) {
-
-
-							if (!dodatni1.getClanovi().contains(a)) {
-								temp.add(new Atom(a.getOznaka(), a.isNegated()));
+								Izraz tempIzraz = new Izraz(noviSet);
+								if (!tempIzraz.isTautalogija()) {
+									promjena = true;
+									red.add(tempIzraz);
+									unutarnjiRed.add(tempIzraz);
+									dodatniSkup.add(tempIzraz);
+									deductedFrom.put(tempIzraz.getOriginalniOblik(), new Pair<>(dodatni2.getOriginalniOblik(), dodatni1.getOriginalniOblik()));
+									for (Izraz pocetni2 : pocetniSkup)//brisanje nadizraza u pocetnom
+									{
+										if (pocetni2.getClanovi().size() > tempIzraz.getClanovi().size()) {
+											if (pocetni2.getClanovi().containsAll(tempIzraz.getClanovi())) {
+												trebaIzbrisati.add(pocetni2);
+											}
+										}
+									}
+									for (Izraz dodatni : dodatniSkup)//brisanje nadizraza u dodatnom
+									{
+										if (dodatni.getClanovi().size() > tempIzraz.getClanovi().size()) {
+											if (dodatni.getClanovi().containsAll(tempIzraz.getClanovi())) {
+												trebaIzbrisati.add(dodatni);
+												red.remove(dodatni);
+												unutarnjiRed.remove(dodatni);
+											}
+										}
+									}
+								}
 							}
-
 						}
-						trebaIzbrisati.add(pocetni);
-						if (temp.size() == 0) {
-							deductedFrom.put("#NILL", new Pair<>(pocetni.getOriginalniOblik(), dodatni1.getOriginalniOblik()));
-							IspisTrue(deductedFrom, pocetniIzrazi, cilj.getOriginalniOblik());
 
-							return true;
 
-						}
-						Izraz tempIzraz = new Izraz(temp);
-						dodatniSkupTemp.add(tempIzraz);
-						red.add(tempIzraz);
-						deductedFrom.put(tempIzraz.getOriginalniOblik(), new Pair<>(pocetni.getOriginalniOblik(), dodatni1.getOriginalniOblik()));
-						break;
 					}
 
 				}
@@ -272,10 +280,7 @@ public class Solution {
 				pocetniSkup.remove(i);
 				dodatniSkup.remove(i);
 			}
-			dodatniSkup.addAll(dodatniSkupTemp);
-			if(!promjena) {
 
-			}
 
 		}
 
