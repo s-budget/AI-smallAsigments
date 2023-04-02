@@ -300,10 +300,13 @@ tempSet.add(new Atom(a.getOznaka(),a.isNegated()));
 			String formula = red.pop();
 			if (pocetniIzrazi.contains(formula) || !deductedFrom.containsKey(formula)) {
 
-				if(!deductedFrom.containsKey(formula) && !pocetni.contains(formula)) {
+				if(!deductedFrom.containsKey(formula) && !pocetniIzrazi.contains(formula) && !ostaliPrvi.contains(formula)) {
 					ostaliPrvi.add(formula);
 				}
-				pocetni.add(formula);
+				else {
+
+					pocetni.add(formula);
+				}
 			} else {
 				ostali.add(formula + " <== [ " + deductedFrom.get(formula).getFirst() + " , " + deductedFrom.get(formula).getSecond() + " ]");
 				red.add(deductedFrom.get(formula).getFirst());
