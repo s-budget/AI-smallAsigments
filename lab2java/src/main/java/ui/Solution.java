@@ -8,7 +8,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 
-//Cosulted with: Leona Salihović
+//Consulted with: Leona Salihović
+                //Karlo Boroš
 
 
 
@@ -83,7 +84,7 @@ public class Solution {
 					pair[0] = line.toLowerCase().substring(0,line.length()-2);
 					pair[1] = String.valueOf(line.toLowerCase().charAt(line.length()-1));
 					Izraz temp = new Izraz(pair[0]);
-					System.out.println("");
+					System.out.println();
 					if (pair[1].equals("-")) {
 						ulazniIzrazi.remove(temp);
 						System.out.println("User’s command: " + line + "\nremoved " + pair[0]);
@@ -383,16 +384,8 @@ class Atom
 		return oznaka;
 	}
 
-	public void setOznaka(String oznaka) {
-		this.oznaka = oznaka;
-	}
-
 	public boolean isNegated() {
 		return negated;
-	}
-
-	public void setNegated(boolean negated) {
-		this.negated = negated;
 	}
 
 	@Override
@@ -401,13 +394,6 @@ class Atom
 		if (!(o instanceof Atom)) return false;
 		Atom atom = (Atom) o;
 		return isNegated() == atom.isNegated() && Objects.equals(getOznaka(), atom.getOznaka());
-	}
-
-	public boolean isNegationOf(Object o) {
-		if (this == o) return false;
-		if (!(o instanceof Atom)) return false;
-		Atom atom = (Atom) o;
-		return isNegated() != atom.isNegated() && Objects.equals(getOznaka(), atom.getOznaka());
 	}
 
 	public Atom negate() {
@@ -482,32 +468,16 @@ class Izraz
 		return brojClanova;
 	}
 
-	public void setBrojClanova(int brojClanova) {
-		this.brojClanova = brojClanova;
-	}
-
 	public HashSet<Atom> getClanovi() {
 		return clanovi;
-	}
-
-	public void setClanovi(HashSet<Atom> clanovi) {
-		this.clanovi = clanovi;
 	}
 
 	public String getOriginalniOblik() {
 		return originalniOblik;
 	}
 
-	public void setOriginalniOblik(String originalniOblik) {
-		this.originalniOblik = originalniOblik;
-	}
-
 	public boolean isTautalogija() {
 		return tautalogija;
-	}
-
-	public void setTautalogija(boolean tautalogija) {
-		this.tautalogija = tautalogija;
 	}
 
 	@Override
