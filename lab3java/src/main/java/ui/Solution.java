@@ -1,11 +1,13 @@
 package ui;
 
 import java.io.IOException;
+import java.math.RoundingMode;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.DecimalFormat;
 import java.util.*;
 import  java.lang.Math.*;
 
@@ -39,6 +41,19 @@ public class Solution {
 
 		MLAlgorithm ML =new MLAlgorithm(depth);
 		ML.fit(parametri);
+		filePath = Paths.get(pathTest);
+		ArrayList<params> test=new ArrayList<>();
+		try {
+			List<String> lines = Files.readAllLines(filePath, charset);
+			lines.removeIf(str -> str.startsWith("#") || str.length() == 0);
+			String[] imena= lines.get(0).split(",");
+			for (int i = 1; i < lines.size(); i++) {
+				test.add(new params(imena,lines.get(i).split(",")));
+			}
+		} catch (IOException ex) {
+			System.out.format("I/O error: %s%n", ex);
+		}
+		ML.predict(test);
 
 
 	}
@@ -82,7 +97,6 @@ class MLAlgorithm
 			povratni.setLeaf(true);
 			povratni.setLabel(parrentChoice);
 			povratni.setBranch(currentPath+parrentChoice);
-
 			System.out.println(povratni.getBranch());
 			return povratni;
 		}
@@ -241,21 +255,67 @@ class MLAlgorithm
 					break;
 				}
 			}
-
+			povratni.setCommon(labelC);
 			Node djete=buildNode(parDjete,parametri,newNames,currentDepth+1,currentPath+(currentDepth+1)+":"+currentName+"="+uvjet+" ",labelC);
 			povratni.getChildren().put(uvjet,djete);
 		}
 		return povratni;
+	}
+
+	public void predict(ArrayList<params> test) {
+		System.out.print("[PREDICTIONS]:");
+		double correct=0;
+		double total=0;
+		for(params p : test)
+		{
+			Node trenutni=new Node();
+			trenutni.setLeaf(treeStart.isLeaf());
+			trenutni.setBranch(treeStart.getBranch());
+			trenutni.setChildren(treeStart.getChildren());
+			trenutni.setEvidenceName(treeStart.getEvidenceName());
+			trenutni.setLabel(treeStart.getLabel());
+			trenutni.setCommon(treeStart.getCommon());
+			while(!trenutni.isLeaf())
+			{
+				if(trenutni.getChildren().get(p.getParram().get(trenutni.getEvidenceName()))==null)
+				{
+					String trenutniCommon= trenutni.getCommon();
+					trenutni=new Node();
+					trenutni.setLeaf(true);
+					trenutni.setLabel(trenutniCommon);
+					break;
+				}
+				trenutni=trenutni.getChildren().get(p.getParram().get(trenutni.getEvidenceName()));
+			}
+			System.out.print(" "+trenutni.getLabel());
+			total++;
+			if(trenutni.getLabel().equals(p.getLabel()))
+			{
+				correct++;
+			}
+		}
+		System.out.println();
+		double acc=correct/total;
+		System.out.println("[ACCURACY]: "+String.format("%.5f", acc));
+
 	}
 }
 class Node
 {
 	boolean leaf;
 	String label;
-	String mostCommonCurrentLabel;
 	String branch;
 	String evidenceName;
 	HashMap<String,Node> children =new HashMap<>();
+	String common;
+
+	public String getCommon() {
+		return common;
+	}
+
+	public void setCommon(String common) {
+		this.common = common;
+	}
 
 	public boolean isLeaf() {
 		return leaf;
@@ -273,13 +333,6 @@ class Node
 		this.label = label;
 	}
 
-	public String getMostCommonCurrentLabel() {
-		return mostCommonCurrentLabel;
-	}
-
-	public void setMostCommonCurrentLabel(String mostCommonCurrentLabel) {
-		this.mostCommonCurrentLabel = mostCommonCurrentLabel;
-	}
 
 	public String getBranch() {
 		return branch;
