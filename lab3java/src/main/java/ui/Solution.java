@@ -63,6 +63,7 @@ class MLAlgorithm
 {
 	int depth;
 	Node treeStart;
+	SortedSet<String> labels=new TreeSet<>();
 	HashMap<String,HashSet<String>>kardinalitet=new HashMap<>();
 	public MLAlgorithm(int depth)
 	{
@@ -73,6 +74,7 @@ class MLAlgorithm
 	{
 		for(params p : parametri)
 		{
+			labels.add(p.getLabel());
 			for(String s :parametri.get(0).getParram().keySet())
 			{
 				if(!kardinalitet.containsKey(s))
@@ -264,6 +266,7 @@ class MLAlgorithm
 
 	public void predict(ArrayList<params> test) {
 		System.out.print("[PREDICTIONS]:");
+		HashMap<String,HashMap<String,Integer>>matrica=new HashMap<>();
 		double correct=0;
 		double total=0;
 		for(params p : test)
@@ -289,15 +292,40 @@ class MLAlgorithm
 			}
 			System.out.print(" "+trenutni.getLabel());
 			total++;
+
 			if(trenutni.getLabel().equals(p.getLabel()))
 			{
 				correct++;
 			}
+			if(!matrica.containsKey(p.getLabel()))
+			{
+				matrica.put(p.getLabel(),new HashMap<>());
+			}
+			if(!matrica.get(p.getLabel()).containsKey(trenutni.getLabel()))
+			{
+				matrica.get(p.getLabel()).put(trenutni.getLabel(),0);
+			}
+			matrica.get(p.getLabel()).put(trenutni.getLabel(),matrica.get(p.getLabel()).get(trenutni.getLabel())+1);
 		}
 		System.out.println();
 		double acc=correct/total;
 		System.out.println("[ACCURACY]: "+String.format("%.5f", acc));
-
+		System.out.println("[CONFUSION_MATRIX]:");
+		for(String s:labels)
+		{
+			for(String z:labels)
+			{
+				if(matrica.get(s).get(z)==null)
+				{
+					System.out.print(0+" ");
+				}
+				else
+				{
+					System.out.print(matrica.get(s).get(z)+" ");
+				}
+			}
+			System.out.println();
+		}
 	}
 }
 class Node
