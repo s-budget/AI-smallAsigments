@@ -10,7 +10,9 @@ import java.nio.file.Paths;
 import java.text.DecimalFormat;
 import java.util.*;
 import  java.lang.Math.*;
-
+//Colaborated with: Borna Petak
+//                : Karlo Boroš
+//                : Leona Salihović
 public class Solution {
 
 	public static void main(String ... args)
@@ -192,10 +194,12 @@ class MLAlgorithm
 			}
 
 			double ig=entropija;
-			for (String s : temp2.keySet()) {
+			for (String s : temp2.keySet())
+			{
 				double entropijaUnutarnja=0;
 				double sum1=0;
-				for (int f : temp2.get(s).values()) {
+				for (int f : temp2.get(s).values())
+				{
 					sum1 += f;
 				}
 				for(int f : temp2.get(s).values())
@@ -203,7 +207,6 @@ class MLAlgorithm
 					entropijaUnutarnja -= (f/sum1)*(Math.log(f/sum1)/Math.log(2));
 				}
 				ig-=(sum1/sum)*entropijaUnutarnja;
-
 			}
 			if(ig>maks || ig==maks && ime.compareTo(currentName)<0)
 			{
