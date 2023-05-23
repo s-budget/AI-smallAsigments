@@ -10,7 +10,7 @@ import java.nio.file.Paths;
 import java.text.DecimalFormat;
 import java.util.*;
 import  java.lang.Math.*;
-//Colaborated with: Borna Petak
+//Consulted with: Borna Petak
 //                : Karlo Boroš
 //                : Leona Salihović
 public class Solution {
