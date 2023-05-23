@@ -1,0 +1,5 @@
+Rješenja laboratorijskih viježbi iz predmeta: Uvod u umjetnu inteligenciju, FER, 2023.
+lab1java-> Pretraživanje prostora stanja
+lab2java-> Automatsko zaključivanje unutar propozicijske logike (rezolucijsko pravilo)
+lab3java-> ID3 algoritam, nadgledano strojno učenje
+lab4java-> Neuronska mreza optimizirana genetskim algoritmom
